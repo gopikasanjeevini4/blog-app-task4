@@ -8,8 +8,8 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $id = $_GET['id'];
-$stmt = $pdo->prepare("SELECT * FROM posts WHERE id = ? AND user_id = ?");
-$stmt->execute([$id, $_SESSION['user_id']]);
+$stmt = $pdo->prepare("SELECT * FROM posts WHERE id = ?");
+$stmt->execute([$id]);
 $post = $stmt->fetch();
 
 if (!$post) {
@@ -17,18 +17,33 @@ if (!$post) {
     exit;
 }
 
+// Only owner or admin can edit
+if ($post['user_id'] != $_SESSION['user_id'] && $_SESSION['role'] != 'admin') {
+    header('Location: index.php');
+    exit;
+}
+
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = $_POST['title'];
-    $content = $_POST['content'];
+    $title = trim($_POST['title']);
+    $content = trim($_POST['content']);
 
-    $stmt = $pdo->prepare("UPDATE posts SET title = ?, content = ? WHERE id = ?");
-    if ($stmt->execute([$title, $content, $id])) {
-        header('Location: index.php');
-        exit;
+    // Validation
+    if (empty($title) || empty($content)) {
+        $error = "All fields are required!";
+    } elseif (strlen($title) < 5) {
+        $error = "Title must be at least 5 characters!";
+    } elseif (strlen($content) < 10) {
+        $error = "Content must be at least 10 characters!";
     } else {
-        $error = "Failed to update post!";
+        $stmt = $pdo->prepare("UPDATE posts SET title = ?, content = ? WHERE id = ?");
+        if ($stmt->execute([$title, $content, $id])) {
+            header('Location: index.php');
+            exit;
+        } else {
+            $error = "Failed to update post!";
+        }
     }
 }
 ?>
@@ -55,12 +70,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php if($error) echo "<div class='alert alert-danger'>$error</div>"; ?>
                     <form method="POST">
                         <div class="mb-3">
-                            <label class="form-label">Post Title</label>
-                            <input type="text" name="title" class="form-control" value="<?php echo htmlspecialchars($post['title']); ?>" required>
+                            <label class="form-label">Post Title <small class="text-muted">(min 5 characters)</small></label>
+                            <input type="text" name="title" class="form-control" value="<?php echo htmlspecialchars($post['title']); ?>" minlength="5" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Post Content</label>
-                            <textarea name="content" class="form-control" rows="6" required><?php echo htmlspecialchars($post['content']); ?></textarea>
+                            <label class="form-label">Post Content <small class="text-muted">(min 10 characters)</small></label>
+                            <textarea name="content" class="form-control" rows="6" minlength="10" required><?php echo htmlspecialchars($post['content']); ?></textarea>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Update Post</button>
                     </form>

@@ -10,16 +10,25 @@ if (!isset($_SESSION['user_id'])) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = $_POST['title'];
-    $content = $_POST['content'];
+    $title = trim($_POST['title']);
+    $content = trim($_POST['content']);
     $user_id = $_SESSION['user_id'];
 
-    $stmt = $pdo->prepare("INSERT INTO posts (title, content, user_id) VALUES (?, ?, ?)");
-    if ($stmt->execute([$title, $content, $user_id])) {
-        header('Location: index.php');
-        exit;
+    // Validation
+    if (empty($title) || empty($content)) {
+        $error = "All fields are required!";
+    } elseif (strlen($title) < 5) {
+        $error = "Title must be at least 5 characters!";
+    } elseif (strlen($content) < 10) {
+        $error = "Content must be at least 10 characters!";
     } else {
-        $error = "Failed to create post!";
+        $stmt = $pdo->prepare("INSERT INTO posts (title, content, user_id) VALUES (?, ?, ?)");
+        if ($stmt->execute([$title, $content, $user_id])) {
+            header('Location: index.php');
+            exit;
+        } else {
+            $error = "Failed to create post!";
+        }
     }
 }
 ?>
@@ -46,12 +55,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php if($error) echo "<div class='alert alert-danger'>$error</div>"; ?>
                     <form method="POST">
                         <div class="mb-3">
-                            <label class="form-label">Post Title</label>
-                            <input type="text" name="title" class="form-control" placeholder="Enter post title" required>
+                            <label class="form-label">Post Title <small class="text-muted">(min 5 characters)</small></label>
+                            <input type="text" name="title" class="form-control" placeholder="Enter post title" minlength="5" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Post Content</label>
-                            <textarea name="content" class="form-control" rows="6" placeholder="Enter post content" required></textarea>
+                            <label class="form-label">Post Content <small class="text-muted">(min 10 characters)</small></label>
+                            <textarea name="content" class="form-control" rows="6" placeholder="Enter post content" minlength="10" required></textarea>
                         </div>
                         <button type="submit" class="btn btn-success w-100">Create Post</button>
                     </form>

@@ -46,7 +46,12 @@ $posts = $stmt->fetchAll();
 
 <nav class="navbar navbar-dark bg-dark px-4">
     <span class="navbar-brand">📝 Blog App</span>
-    <span class="text-white">Welcome, <?php echo $_SESSION['username']; ?>!</span>
+    <span class="text-white">
+        Welcome, <?php echo $_SESSION['username']; ?>!
+        <span class="badge bg-<?php echo $_SESSION['role'] == 'admin' ? 'danger' : 'success'; ?>">
+            <?php echo strtoupper($_SESSION['role']); ?>
+        </span>
+    </span>
     <div>
         <a href="create_post.php" class="btn btn-success btn-sm me-2">+ Create Post</a>
         <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
@@ -66,7 +71,6 @@ $posts = $stmt->fetchAll();
         </div>
     </form>
 
-    <!-- Posts -->
     <?php if($search): ?>
         <h5>Search results for: <strong><?php echo htmlspecialchars($search); ?></strong></h5>
     <?php endif; ?>
@@ -80,9 +84,11 @@ $posts = $stmt->fetchAll();
                     <h5 class="card-title"><?php echo htmlspecialchars($post['title']); ?></h5>
                     <p class="card-text"><?php echo htmlspecialchars($post['content']); ?></p>
                     <small class="text-muted">By <?php echo $post['username']; ?> on <?php echo $post['created_at']; ?></small>
-                    <?php if($post['user_id'] == $_SESSION['user_id']): ?>
+                    <?php if($post['user_id'] == $_SESSION['user_id'] || $_SESSION['role'] == 'admin'): ?>
                         <div class="mt-2">
-                            <a href="edit_post.php?id=<?php echo $post['id']; ?>" class="btn btn-primary btn-sm">Edit</a>
+                            <?php if($post['user_id'] == $_SESSION['user_id']): ?>
+                                <a href="edit_post.php?id=<?php echo $post['id']; ?>" class="btn btn-primary btn-sm">Edit</a>
+                            <?php endif; ?>
                             <a href="delete_post.php?id=<?php echo $post['id']; ?>" class="btn btn-danger btn-sm" onclick="return confirm('Delete this post?')">Delete</a>
                         </div>
                     <?php endif; ?>

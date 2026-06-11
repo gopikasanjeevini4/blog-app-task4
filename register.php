@@ -4,15 +4,37 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'];
-    $email = $_POST['email'];
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $username = trim($_POST['username']);
+    $email = trim($_POST['email']);
+    $password = $_POST['password'];
+    $confirm_password = $_POST['confirm_password'];
 
-    $stmt = $pdo->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
-    if ($stmt->execute([$username, $email, $password])) {
-        $success = "Registration successful! <a href='login.php'>Login here</a>";
+    // Validation
+    if (empty($username) || empty($email) || empty($password)) {
+        $error = "All fields are required!";
+    } elseif (strlen($username) < 3) {
+        $error = "Username must be at least 3 characters!";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Invalid email format!";
+    } elseif (strlen($password) < 6) {
+        $error = "Password must be at least 6 characters!";
+    } elseif ($password !== $confirm_password) {
+        $error = "Passwords do not match!";
     } else {
-        $error = "Registration failed!";
+        // Check if email already exists
+        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        if ($stmt->fetch()) {
+            $error = "Email already registered!";
+        } else {
+            $password = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'editor')");
+            if ($stmt->execute([$username, $email, $password])) {
+                $success = "Registration successful! <a href='login.php'>Login here</a>";
+            } else {
+                $error = "Registration failed!";
+            }
+        }
     }
 }
 ?>
@@ -35,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <form method="POST">
                         <div class="mb-3">
                             <label class="form-label">Username</label>
-                            <input type="text" name="username" class="form-control" placeholder="Enter username" required>
+                            <input type="text" name="username" class="form-control" placeholder="Min 3 characters" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Email</label>
@@ -43,7 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Password</label>
-                            <input type="password" name="password" class="form-control" placeholder="Enter password" required>
+                            <input type="password" name="password" class="form-control" placeholder="Min 6 characters" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Confirm Password</label>
+                            <input type="password" name="confirm_password" class="form-control" placeholder="Repeat password" required>
                         </div>
                         <button type="submit" class="btn btn-success w-100">Register</button>
                     </form>
